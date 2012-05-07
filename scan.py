@@ -196,7 +196,8 @@ def _followed_by_multiple_consonants(clusters, i):
         if cluster_type == _VOWEL:
             return False
         elif cluster_type == _CONSONANT:
-            for c in clusters[i]:
+            stripped = _strip_diacriticals(clusters[i])
+            for c in stripped:
                 if c in _LONG_CONSONANTS:
                     consonant_count += 2
                 else:
