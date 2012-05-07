@@ -200,6 +200,10 @@ def _followed_by_multiple_consonants(clusters, i):
             for c in stripped:
                 if c in _LONG_CONSONANTS:
                     consonant_count += 2
+                elif consonant_count and c == '\u03c1': # rho
+                    # consonant clusters with rho don't always lengthen the
+                    # preceding vowel. e.g., Il. 1.201
+                    pass
                 else:
                     consonant_count += 1
             if consonant_count > 1:
