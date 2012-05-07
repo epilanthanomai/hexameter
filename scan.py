@@ -288,13 +288,13 @@ def process_line_stream(inf, stats):
 
 def report_stats(stats):
     print('Total lines scanned: %d' % (stats['total_lines'],))
-    print('Success:             %s (%d%%)' % (stats['scanned'], stats_pct(stats, 'scanned')))
-    print('Failed:              %s (%d%%)' % (stats['no_match'], stats_pct(stats, 'no_match')))
-    print('Multiple matches:    %s (%d%%)' % (stats['multi_match'], stats_pct(stats, 'multi_match')))
+    print('Success:             %s (%.1f%%)' % (stats['scanned'], stats_pct(stats, 'scanned')))
+    print('Failed:              %s (%.1f%%)' % (stats['no_match'], stats_pct(stats, 'no_match')))
+    print('Multiple matches:    %s (%.1f%%)' % (stats['multi_match'], stats_pct(stats, 'multi_match')))
 
 def stats_pct(stats, field):
     percent = float(stats[field]) / float(stats['total_lines'])
-    return int(percent * 100)
+    return percent * 100
 
 if __name__ == '__main__':
     import sys
