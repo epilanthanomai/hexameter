@@ -237,18 +237,72 @@ def scan(line):
                          for i in range(len(clusters))]
     analysis_s = ''.join(m[1] for m in metrical_analysis)
     normalizations = hexameter.normalize(analysis_s)
-    if normalizations:
-        best_cost = normalizations[0][0]
-        return [n[1] for n in normalizations
-                if n[0] == best_cost]
-    else:
+    if not normalizations:
         return []
 
+    best_cost = normalizations[0][0]
+    return [n[1] for n in normalizations
+            if n[0] == best_cost]
+
+
+def process_tei_file(fname, stats):
+    from xml.etree import ElementTree
+    with open(fname) as inf:
+        in_s = inf.read()
+    tei = ElementTree.XML(in_s)
+    text = tei.find('text')
+    for line_node in text.iter('l'):
+        line = ''.join(line_node.itertext())
+        stats['total_lines'] += 1
+        scansion = scan(line)
+        if not scansion:
+            stats['no_match'] += 1
+            print('ERROR: Failed to scan: ' + line)
+        elif len(scansion) > 1:
+            stats['multi_match'] += 1
+            print(line + ' ' + ' OR '.join(scansion))
+        else:
+            stats['scanned'] += 1
+            print(line + ' ' + scansion[0])
+
+
+def process_line_stream(inf, stats):
+    for line in inf:
+        stats['total_lines'] += 1
+        line = line.strip() # strip whitespace
+        scansion = scan(line)
+        if not scansion:
+            stats['no_match'] += 1
+            print('ERROR: Failed to scan: ' + line)
+        elif len(scansion) > 1:
+            stats['multi_match'] += 1
+            print(' OR '.join(scansion))
+        else:
+            stats['scanned'] += 1
+            print(scansion[0])
+
+def report_stats(stats):
+    print('Total lines scanned: %d' % (stats['total_lines'],))
+    print('Success:             %s (%d%%)' % (stats['scanned'], stats_pct(stats, 'scanned')))
+    print('Failed:              %s (%d%%)' % (stats['no_match'], stats_pct(stats, 'no_match')))
+    print('Multiple matches:    %s (%d%%)' % (stats['multi_match'], stats_pct(stats, 'multi_match')))
+
+def stats_pct(stats, field):
+    percent = float(stats[field]) / float(stats['total_lines'])
+    return int(percent * 100)
 
 if __name__ == '__main__':
     import sys
-    for line in sys.stdin:
-        line = line.strip() # strip whitespace
-        scansion = scan(line)
-        print('%s => %s' % (line, scansion))
-
+    args = sys.argv[1:]
+    stats = {
+        'total_lines': 0,
+        'scanned': 0,
+        'no_match': 0,
+        'multi_match': 0,
+    }
+    if args:
+        for fname in args:
+            process_tei_file(fname, stats)
+    else:
+        process_line_stream(sys.stdin, stats)
+    report_stats(stats)
