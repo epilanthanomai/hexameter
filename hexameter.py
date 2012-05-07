@@ -61,23 +61,29 @@ FOOT = '|'
 #  (35) <                > (36) <                > (37)
 #        ' -z- (38) -X- '        ' -z- (39) -X- '
 #
-# One final complexity is needed: An unweighted algorithm can't distinguish
-# between a scan free of any synizesis or correption and a line that
-# contains many of those exceptions. We want to favor scans with as few of
-# these features as possible, and so we add a cost to transitions involving
-# synizesis and correption. Specifically, additional cost/weight is given to
-# the transitions where LONG_CORREPTION transitions in the -s- group (that
-# is, where correption occurs), and where SHORT_SYNIZESIS transitions
-# participate in the replacement of a long syllable. Note that this cost is
-# not applied when a LONG_CORREPTION transitions along a -L- path: This is
-# the normal case of a long syllable functioning as a long syllable. The
-# cost is also not applied for an INDETERMINATE_CORREPTION syllable in any
-# case: This is a syllable that could be either short or long naturally, and
-# so no correption is necessary to explain its use as short. Since
-# SHORT_SYNIZESIS is just a short syllable normally, its transition along a
-# -s- path similarly has no additional cost. Our machine collects all
-# possible matches and reports each with its cost so that calling software
-# can report any and all appropriate scansions.
+# This gets us far, but an unweighted algorithm can't distinguish between a
+# scan free of any synizesis or correption and a line that contains many of
+# those exceptions. We want to favor scans with as few of these features as
+# possible, and so we add a cost to transitions involving synizesis and
+# correption. Specifically, additional cost/weight is given to the transitions
+# where LONG_CORREPTION transitions in the -s- group (that is, where correption
+# occurs), and where SHORT_SYNIZESIS transitions participate in the replacement
+# of a long syllable. Note that this cost is not applied when a LONG_CORREPTION
+# transitions along a -L- path: This is the normal case of a long syllable
+# functioning as a long syllable. The cost is also not applied for an
+# INDETERMINATE_CORREPTION syllable in any case: This is a syllable that could
+# be either short or long naturally, and so no correption is necessary to
+# explain its use as short. Since SHORT_SYNIZESIS is just a short syllable
+# normally, its transition along a -s- path similarly has no additional cost.
+# Our machine collects all possible matches and reports each with its cost so
+# that calling software can report any and all appropriate scansions.
+#
+# Note that frequently (~1300 lines, e.g., Il. 1.33) won't scan unless we
+# scan short syllables as long. Some of these can be explained with a
+# dropped digamma, but not all of them. In order to provide some sensible
+# scansion, we allow SHORT_SYLLABLES to fill in for LONG_SYLLABLES. We give
+# this an arbitrarily high cost so that the path is only taken as a last
+# resort.
 
 LONG_SYLLABLES = [ LONG, INDETERMINATE, LONG_CORREPTION, INDETERMINATE_CORREPTION ]
 SHORT_SYLLABLES = [ SHORT, INDETERMINATE, INDETERMINATE_CORREPTION, SHORT_SYNIZESIS ]
@@ -96,11 +102,13 @@ class ScansionNFA:
 
         # long first syllable
         ( 0,          LONG_SYLLABLES,      1,        0,    LONG),
+        ( 0,          SHORT_SYLLABLES,     1,        15,   LONG),
         # synizesis producing long first syllable
         ( 0,          SYNIZESIS_SYLLABLES, 3,        1,    SKIPPED),
         ( 3,          ALL_SYLLABLES,       1,        0,    LONG),
         # long second syllable of spondee
         ( 1,          LONG_SYLLABLES,      7,        0,    LONG + FOOT),
+        ( 1,          SHORT_SYLLABLES,     7,        15,   LONG + FOOT),
         # synizesis producing long second syllable of spondee
         ( 1,          SYNIZESIS_SYLLABLES, 4,        1,    SKIPPED),
         ( 4,          ALL_SYLLABLES,       5,        0,    LONG + FOOT),
@@ -123,11 +131,13 @@ class ScansionNFA:
 
         # long first syllable
         ( 7,          LONG_SYLLABLES,      8,        0,    LONG),
+        ( 7,          SHORT_SYLLABLES,     8,        15,   LONG),
         # synizesis producing long first syllable
         ( 7,          SYNIZESIS_SYLLABLES, 10,       1,    SKIPPED),
         ( 10,         ALL_SYLLABLES,       8,        0,    LONG),
         # long second syllable of spondee
         ( 8,          LONG_SYLLABLES,      14,       0,    LONG + FOOT),
+        ( 8,          SHORT_SYLLABLES,     14,       15,   LONG + FOOT),
         # synizesis producing long second syllable of spondee
         ( 8,          SYNIZESIS_SYLLABLES, 11,       1,    SKIPPED),
         ( 11,         ALL_SYLLABLES,       14,       0,    LONG + FOOT),
@@ -150,11 +160,13 @@ class ScansionNFA:
 
         # long first syllable
         ( 14,         LONG_SYLLABLES,      15,       0,    LONG),
+        ( 14,         SHORT_SYLLABLES,     15,       15,   LONG),
         # synizesis producing long first syllable
         ( 14,         SYNIZESIS_SYLLABLES, 17,       1,    SKIPPED),
         ( 17,         ALL_SYLLABLES,       15,       0,    LONG),
         # long second syllable of spondee
         ( 15,         LONG_SYLLABLES,      21,       0,    LONG + FOOT),
+        ( 15,         SHORT_SYLLABLES,     21,       15,   LONG + FOOT),
         # synizesis producing long second syllable of spondee
         ( 15,         SYNIZESIS_SYLLABLES, 18,       1,    SKIPPED),
         ( 18,         ALL_SYLLABLES,       21,       0,    LONG + FOOT),
@@ -177,11 +189,13 @@ class ScansionNFA:
 
         # long first syllable
         ( 21,         LONG_SYLLABLES,      22,       0,    LONG),
+        ( 21,         SHORT_SYLLABLES,     22,       15,   LONG),
         # synizesis producing long first syllable
         ( 21,         SYNIZESIS_SYLLABLES, 24,       1,    SKIPPED),
         ( 24,         ALL_SYLLABLES,       22,       0,    LONG),
         # long second syllable of spondee
         ( 22,         LONG_SYLLABLES,      28,       0,    LONG + FOOT),
+        ( 22,         SHORT_SYLLABLES,     28,       15,   LONG + FOOT),
         # synizesis producing long second syllable of spondee
         ( 22,         SYNIZESIS_SYLLABLES, 25,       1,    SKIPPED),
         ( 25,         ALL_SYLLABLES,       28,       0,    LONG + FOOT),
@@ -207,11 +221,13 @@ class ScansionNFA:
 
         # long first syllable
         ( 28,         LONG_SYLLABLES,      29,       0,    LONG),
+        ( 28,         SHORT_SYLLABLES,     29,       15,   LONG),
         # synizesis producing long first syllable
         ( 28,         SYNIZESIS_SYLLABLES, 31,       1,    SKIPPED),
         ( 31,         ALL_SYLLABLES,       29,       0,    LONG),
         # long second syllable of spondee
         ( 29,         LONG_SYLLABLES,      35,       1,    LONG + FOOT), # raised spondee cost
+        ( 29,         SHORT_SYLLABLES,     35,       16,   LONG + FOOT),
         # synizesis producing long second syllable of spondee
         ( 29,         SYNIZESIS_SYLLABLES, 32,       1,    SKIPPED),
         ( 32,         ALL_SYLLABLES,       35,       1,    LONG + FOOT), # raised spondee cost
@@ -234,6 +250,7 @@ class ScansionNFA:
 
         # long first syllable
         ( 35,         LONG_SYLLABLES,      36,       0,    LONG),
+        ( 35,         SHORT_SYLLABLES,     36,       15,   LONG),
         # synizesis producing long first syllable
         ( 35,         SYNIZESIS_SYLLABLES, 38,       1,    SKIPPED),
         ( 38,         ALL_SYLLABLES,       36,       0,    LONG),
