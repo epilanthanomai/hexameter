@@ -111,7 +111,7 @@ class ScansionNFA:
         ( 1,          SHORT_SYLLABLES,     7,        15,   LONG + FOOT),
         # synizesis producing long second syllable of spondee
         ( 1,          SYNIZESIS_SYLLABLES, 4,        1,    SKIPPED),
-        ( 4,          ALL_SYLLABLES,       5,        0,    LONG + FOOT),
+        ( 4,          ALL_SYLLABLES,       7,        0,    LONG + FOOT),
         # short second syllable of dactyl
         ( 1,          SHORT_SYLLABLES,     2,        0,    SHORT),
         ( 1,          CORREPTED_SYLLABLES, 2,        1,    SHORT),
