@@ -130,7 +130,7 @@ class ScansionNFA:
         ( 8,          LONG_SYLLABLES,      14,       0,    LONG + FOOT),
         # synizesis producing long second syllable of spondee
         ( 8,          SYNIZESIS_SYLLABLES, 11,       1,    SKIPPED),
-        ( 11,         ALL_SYLLABLES,       12,       0,    LONG + FOOT),
+        ( 11,         ALL_SYLLABLES,       14,       0,    LONG + FOOT),
         # short second syllable of dactyl
         ( 8,          SHORT_SYLLABLES,     9,        0,    SHORT),
         ( 8,          CORREPTED_SYLLABLES, 9,        1,    SHORT),
@@ -157,7 +157,7 @@ class ScansionNFA:
         ( 15,         LONG_SYLLABLES,      21,       0,    LONG + FOOT),
         # synizesis producing long second syllable of spondee
         ( 15,         SYNIZESIS_SYLLABLES, 18,       1,    SKIPPED),
-        ( 18,         ALL_SYLLABLES,       19,       0,    LONG + FOOT),
+        ( 18,         ALL_SYLLABLES,       21,       0,    LONG + FOOT),
         # short second syllable of dactyl
         ( 15,         SHORT_SYLLABLES,     16,       0,    SHORT),
         ( 15,         CORREPTED_SYLLABLES, 16,       1,    SHORT),
@@ -184,7 +184,7 @@ class ScansionNFA:
         ( 22,         LONG_SYLLABLES,      28,       0,    LONG + FOOT),
         # synizesis producing long second syllable of spondee
         ( 22,         SYNIZESIS_SYLLABLES, 25,       1,    SKIPPED),
-        ( 25,         ALL_SYLLABLES,       26,       0,    LONG + FOOT),
+        ( 25,         ALL_SYLLABLES,       28,       0,    LONG + FOOT),
         # short second syllable of dactyl
         ( 22,         SHORT_SYLLABLES,     23,       0,    SHORT),
         ( 22,         CORREPTED_SYLLABLES, 23,       1,    SHORT),
@@ -214,7 +214,7 @@ class ScansionNFA:
         ( 29,         LONG_SYLLABLES,      35,       1,    LONG + FOOT), # raised spondee cost
         # synizesis producing long second syllable of spondee
         ( 29,         SYNIZESIS_SYLLABLES, 32,       1,    SKIPPED),
-        ( 32,         ALL_SYLLABLES,       33,       1,    LONG + FOOT), # raised spondee cost
+        ( 32,         ALL_SYLLABLES,       35,       1,    LONG + FOOT), # raised spondee cost
         # short second syllable of dactyl
         ( 29,         SHORT_SYLLABLES,     30,       0,    SHORT),
         ( 29,         CORREPTED_SYLLABLES, 30,       1,    SHORT),
