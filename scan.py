@@ -160,6 +160,10 @@ def _metrical_length(clusters, i):
     else:
         length = _VOWEL_LENGTH_MAP.get(unaccented, hexameter.INDETERMINATE)
 
+    # circumflex is always on a long
+    if '\u0342' in c: # circumflex
+        length = hexameter.LONG
+
     # take position into account
     if _followed_by_multiple_consonants(clusters, i):
         length = hexameter.LONG
@@ -172,10 +176,6 @@ def _metrical_length(clusters, i):
     if (_synizesis_candidate(c) and
             _followed_by_vowel_in_same_word(clusters, i)):
         length = hexameter.SHORT_SYNIZESIS
-
-    # circumflex is always on a long
-    if '\u0342' in c: # circumflex
-        length = hexameter.LONG
 
     return (c, length)
 
