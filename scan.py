@@ -4,6 +4,10 @@ import re
 import unicodedata
 import hexameter
 
+###
+### constants and handy definitions
+###
+
 _CONSONANT = 0
 _VOWEL = 1
 _DIACRITICAL = 2
@@ -60,28 +64,6 @@ _CHAR_TYPE_MAP.update({c: _VOWEL for c in _VOWELS})
 _CHAR_TYPE_MAP.update({c.upper(): _VOWEL for c in _VOWELS})
 _CHAR_TYPE_MAP.update({c: _DIACRITICAL for c in _DIACRITICALS})
 
-def _get_char_type(c):
-    return _CHAR_TYPE_MAP.get(c, _OTHER)
-
-def _get_glyph_type(g):
-    return _get_char_type(g[0])
-
-def _get_cluster_type(g):
-    return _get_char_type(g[0])
-
-def _glyphs(s):
-    glyphs = []
-    for c in s:
-        if _get_char_type(c) == _DIACRITICAL:
-            glyphs[-1] += c
-        else:
-            glyphs.append(c)
-    return glyphs
-
-def _strip_diacriticals(cluster):
-    return ''.join(c for c in cluster
-                   if _get_char_type(c) != _DIACRITICAL)
-
 _VOWEL_LENGTH_MAP = {
     '\u03b5': hexameter.SHORT, # epsilon
     '\u03b7': hexameter.LONG, # eta
@@ -106,9 +88,44 @@ _DIPHTHONGS = [
     '\u03c5\u03b9', # upsilon iota
     ]
 
+_SYNIZESIS_CANDIDATES = [
+    '\u03b5', # unaccented epsilon
+    '\u03b5\u0301', # epsilon with acute
+    ]
+
+###
+### utility functions
+###
+
+def _get_char_type(c):
+    return _CHAR_TYPE_MAP.get(c, _OTHER)
+
+def _get_glyph_type(g):
+    return _get_char_type(g[0])
+
+def _get_cluster_type(g):
+    return _get_char_type(g[0])
+
+def _strip_diacriticals(cluster):
+    return ''.join(c for c in cluster
+                   if _get_char_type(c) != _DIACRITICAL)
+
 def _valid_diphthong(glyph1, glyph2):
     unaccented = glyph1[0] + glyph2[0]
     return (unaccented in _DIPHTHONGS)
+
+###
+### initial clustering
+###
+
+def _glyphs(s):
+    glyphs = []
+    for c in s:
+        if _get_char_type(c) == _DIACRITICAL:
+            glyphs[-1] += c
+        else:
+            glyphs.append(c)
+    return glyphs
 
 def _cluster(glyphs):
     clusters = []
@@ -145,6 +162,10 @@ def _cluster(glyphs):
             clusters.append(g)
     return clusters
 
+###
+### syllable length analysis
+###
+
 def _metrical_length(clusters, i):
     c = clusters[i]
     if _get_cluster_type(c) != _VOWEL:
@@ -180,11 +201,6 @@ def _metrical_length(clusters, i):
     return (c, length)
 
 # FIXME: is this the best way to check for synizesis?
-_SYNIZESIS_CANDIDATES = [
-    '\u03b5', # unaccented epsilon
-    '\u03b5\u0301', # epsilon with acute
-    ]
-
 def _synizesis_candidate(cluster):
     return (cluster in _SYNIZESIS_CANDIDATES)
 
@@ -236,6 +252,9 @@ def _followed_by_vowel_in_same_word(clusters, i):
     next_cluster_type = _get_cluster_type(clusters[i+1])
     return (next_cluster_type == _VOWEL)
 
+###
+### tie it all together and scan a line
+###
 
 def scan(line):
     line = unicodedata.normalize('NFD', line)
@@ -253,6 +272,9 @@ def scan(line):
     return [n[1] for n in normalizations
             if n[0] == best_cost]
 
+###
+### file/stream processing
+###
 
 def process_tei_file(fname, stats):
     from xml.etree import ElementTree
