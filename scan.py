@@ -2,6 +2,8 @@
 
 import re
 import unicodedata
+from xml.etree import ElementTree
+
 import hexameter
 
 ###
@@ -253,31 +255,171 @@ def _followed_by_vowel_in_same_word(clusters, i):
     return (next_cluster_type == _VOWEL)
 
 ###
+### identify ceasura
+###
+
+def _merge_scansion(metrical_analysis, scansion):
+    '''Merge preliminary metrical analysis from this module with a scansion
+    provided by :func:`scan.normalize`. 
+
+    :param metrical_analysis: list of tuples containing a character
+        cluster and the preliminary metrical analysis of that cluster prior
+        to final line-based scansion.
+    :param scansion: string representing a final scansion for the line. It
+        contains one metrical marking (+-.) for each vowel cluster plus |
+        for foot markers.
+    :rtype: list of tuples containing a character cluster, preliminary
+        metrical analysis, and final metrical analysis from scansion.
+    '''
+    # we approach this like a zipper with a few missing teeth: pull items
+    # from the front of each input, matching them up where they fit.
+    result = []
+    while metrical_analysis and scansion:
+        if scansion[0] == hexameter.FOOT:
+            # squeeze it into the output. it has no matching letter cluster.
+            result.append(('', '', scansion[0]))
+            scansion = scansion[1:] # consume that character
+            continue
+
+        cluster, prelim = metrical_analysis[0]
+        # if there was a preliminary analysis of this cluster, then the
+        # scansion has a character for it.
+        if prelim:
+            result.append((cluster, prelim, scansion[0]))
+            metrical_analysis = metrical_analysis[1:]
+            scansion = scansion[1:]
+            continue
+
+        # otherwise this cluster is a consonant or space and doesn't
+        # contribute to scansion. copy it to the result without a scansion.
+        result.append((cluster, prelim, ''))
+        metrical_analysis = metrical_analysis[1:]
+
+    # after the loop, either metrical_analysis or scansion is empty. it
+    # should be impossible for metrical_analysis to go empty with items
+    # still in scansion, but do something sane here in case that condition
+    # ever changes
+    for s in scansion:
+        result.append(('', '', s))
+
+    # on the other hand, it's quite possible for metrical_analysis to
+    # contain consonants and punctuation after the final scansion element.
+    # copy them to the result without scansion.
+    for cluster, prelim in metrical_analysis:
+        result.append((cluster, prelim, ''))
+
+    return result
+
+# FIXME: this is hexameter specific. it probably belongs in hexameter.py
+def _locate_caesura(metrical_analysis):
+    '''Find the primary caesura in a line. We start in the third foot and
+    look for the first word break that's not at foot boundary.
+
+    :param metrical_analysis: list of tuples contiaining a character
+        cluster, a preliminary metrical analysis, and a final scansion
+    :rtype: the index of the caesura, or None if none could be found
+    '''
+    foot = 1 # start in the first foot
+    foot_boundary = True
+    for i in range(len(metrical_analysis)):
+        cluster, prelim, scansion = metrical_analysis[i]
+        if scansion == '|':
+            foot += 1
+            foot_boundary = True
+            continue
+        elif scansion:
+            # once we see a scanned syllable, we're inside the next foot
+            foot_boundary = False
+
+        if ' ' in cluster:
+            # this cluster is a word boundary
+            if foot >=3 and not foot_boundary:
+                return i
+
+    # otherwise, we didn't find a caesura.
+    return None
+
+def _split_line(metrical_analysis, caesura_idx):
+    '''Split the analyzed line into two strings, split at the identified
+    caesura.
+    
+    :param metrical_analysis: list of tuples containing a character cluster,
+        preliminary metrical analysis, and final scansion
+    :param caesura_idx: index of the caesura
+    :rtype: tuple of two strings
+    '''
+    pre_parts = metrical_analysis[:caesura_idx]
+    caesura_part = metrical_analysis[caesura_idx]
+    post_parts = metrical_analysis[caesura_idx+1:]
+    pre_s = ''.join(p[0] for p in pre_parts)
+    caesura_s = caesura_part[0]
+    post_s = ''.join(p[0] for p in post_parts)
+
+    # the caesura part should be a of type _OTHER and probably contains a
+    # space, though it may contain other punctuation. we need to figure out
+    # exactly where inside that part to split
+    before, space, after = caesura_s.partition(' ')
+    if space:
+        pre_s = pre_s + before + space
+        post_s = after + post_s
+    else:
+        # no space, so arbitrarily shove all the punctuation before the
+        # caesura.
+        pre_s = pre_s + caesura_s
+    return (pre_s, post_s)
+
+
+###
 ### tie it all together and scan a line
 ###
 
-def scan(line):
+def _local_metrical_analysis(line):
     line = unicodedata.normalize('NFD', line)
     line = line.lower()
     glyphs = _glyphs(line)
     clusters = _cluster(glyphs)
     metrical_analysis = [_metrical_length(clusters, i)
                          for i in range(len(clusters))]
+    return metrical_analysis
+
+def _scan(metrical_analysis):
     analysis_s = ''.join(m[1] for m in metrical_analysis)
     normalizations = hexameter.normalize(analysis_s)
     if not normalizations:
         return []
 
     best_cost = normalizations[0][0]
-    return [n[1] for n in normalizations
-            if n[0] == best_cost]
+    scansions = [n[1] for n in normalizations
+                 if n[0] == best_cost]
+    return scansions
+
+def analyze_line(line):
+    '''Analyze scansion and caesura placement for a single line of epic
+    hexameter.
+
+    :param line: string
+    :rtype: list of tuples. Each tuple contains a possible scansion and a
+        list of line parts, split at the caesura. If no caesura could be
+        found, the list will contain only a single part.
+    '''
+    metrical_analysis = _local_metrical_analysis(line)
+    scansions = _scan(metrical_analysis)
+    result = []
+    for scansion in scansions:
+        merge = _merge_scansion(metrical_analysis, scansion)
+        caesura = _locate_caesura(merge)
+        if caesura is not None:
+            line_parts = _split_line(merge, caesura)
+        else:
+            line_parts = [line]
+        result.append((scansion, line_parts))
+    return result
 
 ###
 ### file/stream processing
 ###
 
 def process_tei_file(fname, stats):
-    from xml.etree import ElementTree
     with open(fname) as inf:
         in_s = inf.read()
     tei = ElementTree.XML(in_s)
@@ -285,20 +427,58 @@ def process_tei_file(fname, stats):
     for line_node in text.iter('l'):
         line = ''.join(line_node.itertext())
         stats['total_lines'] += 1
-        scansion = scan(line)
-        if not scansion:
+        analyses = analyze_line(line)
+        if not analyses:
             stats['no_match'] += 1
             continue
-        if len(scansion) > 1:
+        if len(analyses) > 1:
             stats['multi_match'] += 1
         else:
             stats['scanned'] += 1
-        scansion_s = ' OR '.join(scansion)
-        line_node.set('real', scansion_s)
+        update_line_node(line_node, analyses)
+
+
     out_s = ElementTree.tostring(tei, encoding='utf-8')
     out_fname = output_file_name(fname)
     with open(out_fname, 'w+b') as outf:
         outf.write(out_s)
+
+def update_line_node(line_node, analyses):
+    # add scansions
+    scansions = [a[0] for a in analyses]
+    scansion_s = ' OR '.join(scansions)
+    line_node.set('real', scansion_s)
+
+    # add caesura
+    caesurae = set(tuple(a[1]) for a in analyses)
+    if len(caesurae) != 1:
+        # not representing differential caesurae, and nothing to do if none
+        # found.
+        return
+    line_parts = list(caesurae)[0]
+    if len(line_parts) != 2:
+        # no caesura found for this analysis, or too many (which should be
+        # impossible)
+        return
+
+    # two types of TEI lines in our sample text: those with a milesone node
+    # inside at the front and those without. for the former, etree puts the
+    # line text in milestone.tail. for the latter, it's in line_node.text.
+    if line_node.text:
+        line_node.text = line_parts[0]
+    else:
+        child_nodes = list(line_node)
+        if len(child_nodes) != 1:
+            # this doesn't look like we expect. bail.
+            return
+        milestone = child_nodes[0]
+        if not milestone.tail:
+            # this doesn't look like we expect. bail.
+            return
+        milestone.tail = line_parts[0]
+    caesura_node = ElementTree.SubElement(line_node, 'caesura')
+    caesura_node.tail = line_parts[1]
+
 
 def output_file_name(fname):
     import os.path
@@ -312,16 +492,17 @@ def process_line_stream(inf, stats):
     for line in inf:
         stats['total_lines'] += 1
         line = line.strip() # strip whitespace
-        scansion = scan(line)
-        if not scansion:
+        analyses = analyze_line(line)
+        if not analyses:
             stats['no_match'] += 1
             print('ERROR: Failed to scan: ' + line)
-        elif len(scansion) > 1:
+        elif len(analyses) > 1:
             stats['multi_match'] += 1
-            print(' OR '.join(scansion))
+            scansions = [a[0] for a in analyses]
+            print(' OR '.join(scansions))
         else:
             stats['scanned'] += 1
-            print(scansion[0])
+            print(analyses[0][0])
 
 def report_stats(stats):
     print('Total lines scanned: %d' % (stats['total_lines'],))
