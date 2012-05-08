@@ -266,14 +266,25 @@ def process_tei_file(fname, stats):
         scansion = scan(line)
         if not scansion:
             stats['no_match'] += 1
-            print('ERROR: Failed to scan: ' + line)
-        elif len(scansion) > 1:
+            continue
+        if len(scansion) > 1:
             stats['multi_match'] += 1
-            print(line + ' ' + ' OR '.join(scansion))
         else:
             stats['scanned'] += 1
-            print(line + ' ' + scansion[0])
+        scansion_s = ' OR '.join(scansion)
+        line_node.set('real', scansion_s)
+    out_s = ElementTree.tostring(tei, encoding='utf-8')
+    out_fname = output_file_name(fname)
+    with open(out_fname, 'w+b') as outf:
+        outf.write(out_s)
 
+def output_file_name(fname):
+    import os.path
+    base, ext = os.path.splitext(fname)
+    if ext.lower() in ('.tei', '.xml'):
+        return base + '.scanned' + ext
+    else:
+        return fname + '.scanned'
 
 def process_line_stream(inf, stats):
     for line in inf:
