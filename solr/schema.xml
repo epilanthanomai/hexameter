@@ -1,0 +1,32 @@
+<schema name='hexameter'>
+  <types>
+    <fieldType name='string' class='solr.StrField' sortMissingLast='true'/>
+    <fieldType name='int' class='solr.TrieIntField' precisionStep='0' positionIncrementGap='0'/>
+
+    <fieldType name='words' class='solr.TextField'>
+      <!-- TODO: stem. this might be hard for homeric. lucene (and thus solr)
+           has a GreekAnalyzer. haven't checked how extensive it is. -->
+      <!-- TODO: normalize accents. perhaps also provide an accent-dropping
+           fieldType for accent-independent searching -->
+      <analyzer>
+        <tokenizer class='solr.StandardTokenizerFactory'/>
+        <!-- <filter class='solr.ICUNormalizer2FilterFactory' name='nfkc_cf' mode='compose'/> -->
+        <filter class='solr.LowerCaseFilterFactory'/>
+      </analyzer>
+    </fieldType>
+  </types>
+
+  <fields>
+    <field name='lineid' type='string' required='true' multiValued='false'/>
+    <field name='work_name' type='string' required='true' multiValued='false'/>
+    <field name='book_num' type='int' required='true' multiValued='false'/>
+    <field name='line_num' type='int' required='true' multiValued='false'/>
+    <field name='line_text' type='words' required='true' multiValued='false'/>
+    <field name='scansion' type='string'/>
+    <field name='before_caesura' type='words' multiValued='false'/>
+    <field name='after_caesura' type='words' multiValued='false'/>
+  </fields>
+
+  <uniqueKey>lineid</uniqueKey>
+  <defaultSearchField>line_text</defaultSearchField>
+</schema>

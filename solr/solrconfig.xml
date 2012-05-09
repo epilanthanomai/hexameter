@@ -1,0 +1,18 @@
+<config>
+  <luceneMatchVersion>LUCENE_31</luceneMatchVersion>
+
+  <updateHandler>
+    <autoCommit>
+      <maxDocs>1000</maxDocs>
+      <maxTime>1000</maxTime>
+    </autoCommit>
+  </updateHandler>
+
+  <requestHandler name='/admin/' class='solr.admin.AdminHandlers'/>
+  <requestHandler name='/update' class='solr.XmlUpdateRequestHandler'/>
+  <requestHandler name='search' class='solr.SearchHandler' default='true'/>
+
+  <admin>
+    <defaultQuery>*:*</defaultQuery>
+  </admin>
+</config>
